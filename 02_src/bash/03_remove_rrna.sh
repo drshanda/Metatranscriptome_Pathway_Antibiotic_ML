@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+THREADS="${THREADS:-$(nproc)}"
+
 mkdir -p data/interim/nonrrna
 
 RRNA_DB=refs/sortmerna/rRNA_databases.fasta
@@ -16,7 +18,7 @@ tail -n +2 metadata/sample_table.tsv | while read sample r1 r2 cond; do
     --fastx \
     --other data/interim/nonrrna/${sample} \
     --workdir data/interim/nonrrna/work_${sample} \
-    --threads 8
+    --threads "$THREADS"
 
   pigz data/interim/nonrrna/${sample}_fwd.fastq
   pigz data/interim/nonrrna/${sample}_rev.fastq

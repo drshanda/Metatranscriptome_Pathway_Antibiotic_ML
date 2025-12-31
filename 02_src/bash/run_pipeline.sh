@@ -15,7 +15,8 @@ set -euo pipefail
 # ------------------------------------------------------------------------------
 
 LOGDIR="logs"
-SCRIPTDIR="scripts"
+SCRIPTDIR="$(dirname "$0")"
+
 
 mkdir -p "${LOGDIR}"
 
