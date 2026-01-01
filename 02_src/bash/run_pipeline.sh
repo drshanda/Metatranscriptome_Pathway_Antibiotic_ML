@@ -1,6 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Activate conda
+#source ~/miniconda3/etc/profile.d/conda.sh
+#conda activate humann39
+
+# Explicit HUMAnN → MetaPhlAn wiring
+#export HUMANN_METAPHLAN_EXECUTABLE=$(which metaphlan)
+#export HUMANN_METAPHLAN_DB=/mnt/work/metaphlan_db
+
+
+export THREADS="${THREADS:-$(nproc)}"
+echo "Pipeline using THREADS=${THREADS}"
+
 # ------------------------------------------------------------------------------
 # Orchestrator for metatranscriptomics analysis pipeline
 #
@@ -50,7 +62,7 @@ run_step () {
 
 run_step "01_fastp"           "${SCRIPTDIR}/01_fastp.sh"
 run_step "02_remove_host"     "${SCRIPTDIR}/02_remove_host.sh"
-run_step "03_remove_rrna"     "${SCRIPTDIR}/03_remove_rrna.sh"
+# run_step "03_remove_rrna"     "${SCRIPTDIR}/03_remove_rrna.sh"
 run_step "04_humann"          "${SCRIPTDIR}/04_humann.sh"
 run_step "05_kegg_pathways"   "${SCRIPTDIR}/05_kegg_pathways.sh"
 run_step "06_multiqc"         "${SCRIPTDIR}/06_multiqc.sh"
