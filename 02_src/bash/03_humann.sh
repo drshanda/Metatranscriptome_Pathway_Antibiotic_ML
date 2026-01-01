@@ -1,89 +1,121 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-############################################
-# HUMAnN2 functional profiling (BATCH SAFE)
-# Translated-only, resumable, per-sample
-############################################
+###############################################################################
+# HUMAnN2 translated-only functional profiling
+# Guardrails:
+#   - Sequential execution
+#   - Explicit thread cap (stability)
+#   - Resume-safe via DONE markers
+#   - Aggressive temp cleanup
+#   - Fail-fast on missing metadata
+###############################################################################
 
-THREADS=${THREADS:-8}
+# -----------------------------
+# Configuration (LOCKED)
+# -----------------------------
+THREADS=10                   # Safe cap for c6i.4xlarge
+NICE_LEVEL=5                 # Leave CPU headroom
+IONICE_CLASS=2               # Best-effort I/O
+IONICE_LEVEL=4
 
-SAMPLE_TABLE="metadata/sample_table.tsv"
+HUMANN_BIN="humann2"
+
+PROTEIN_DB="/mnt/work/humann2_databases/uniref"
+NUCLEOTIDE_DB="/mnt/work/humann2_databases/chocophlan"
 
 INPUT_DIR="data/interim/nohost"
-OUT_BASE="data/processed/humann"
-LOG_DIR="logs/humann2"
+OUT_DIR="results/humann"
+TMP_ROOT="/mnt/work/humann2_tmp"
 
-HUMANN2_DB_ROOT="/mnt/work/humann2_databases"
-PROT_DB="${HUMANN2_DB_ROOT}/uniref"
+METADATA="metadata/sample_table.tsv"
 
-mkdir -p "${OUT_BASE}" "${LOG_DIR}"
+mkdir -p "$OUT_DIR" "$TMP_ROOT"
 
-echo "======================================"
-echo "HUMAnN2 BATCH EXECUTION"
-echo "======================================"
-echo "humann2: $(humann2 --version)"
-echo "Threads: ${THREADS}"
-echo
+# -----------------------------
+# Sanity checks
+# -----------------------------
+if [[ ! -f "$METADATA" ]]; then
+  echo "ERROR: metadata/sample_table.tsv not found"
+  exit 1
+fi
 
-tail -n +2 "${SAMPLE_TABLE}" | while IFS=$'\t' read -r sample r1 r2 cond; do
+# Abort if metadata is malformed
+awk 'NR>1 && NF!=4' "$METADATA" && {
+  echo "ERROR: Malformed metadata rows detected (NF != 4)"
+  exit 1
+}
 
-  SAMPLE_OUTDIR="${OUT_BASE}/${sample}"
-  DONE_FLAG="${SAMPLE_OUTDIR}/DONE"
-  LOG_FILE="${LOG_DIR}/${sample}.log"
+awk 'NR>1 && $4==""' "$METADATA" && {
+  echo "ERROR: Empty condition labels detected"
+  exit 1
+}
 
-  R1="${INPUT_DIR}/${sample}_1.fastq.gz"
-  R2="${INPUT_DIR}/${sample}_2.fastq.gz"
-  INTERLEAVED="${INPUT_DIR}/${sample}_interleaved.fastq.gz"
+# -----------------------------
+# Main loop
+# -----------------------------
+tail -n +2 "$METADATA" | while read -r SAMPLE R1 R2 COND; do
 
-  echo "--------------------------------------"
-  echo "Sample: ${sample}"
-  echo "--------------------------------------"
+  INPUT_FASTQ="${INPUT_DIR}/${SAMPLE}_interleaved.fastq.gz"
+  SAMPLE_OUT="${OUT_DIR}/${SAMPLE}"
+  DONE_MARKER="${SAMPLE_OUT}.DONE"
+  SAMPLE_TMP="${TMP_ROOT}/${SAMPLE}_humann2_tmp"
 
-  if [[ -f "${DONE_FLAG}" ]]; then
-    echo "[SKIP] ${sample} already completed"
+  if [[ -f "$DONE_MARKER" ]]; then
+    echo "[SKIP] $SAMPLE already completed"
     continue
   fi
 
-  if [[ ! -f "${R1}" || ! -f "${R2}" ]]; then
-    echo "[ERROR] Missing FASTQs for ${sample}" | tee -a "${LOG_FILE}"
-    continue
+  if [[ ! -f "$INPUT_FASTQ" ]]; then
+    echo "ERROR: Input FASTQ not found for $SAMPLE"
+    exit 1
   fi
 
-  mkdir -p "${SAMPLE_OUTDIR}"
+  echo "============================================================"
+  echo "HUMAnN2 START: $SAMPLE ($COND)"
+  echo "Threads: $THREADS"
+  echo "Input: $INPUT_FASTQ"
+  echo "Temp: $SAMPLE_TMP"
+  echo "============================================================"
 
-  # ---- Interleave reads (idempotent) ----
-  if [[ ! -f "${INTERLEAVED}" ]]; then
-    echo "Interleaving reads..." | tee -a "${LOG_FILE}"
-    seqtk mergepe "${R1}" "${R2}" | gzip > "${INTERLEAVED}"
-  fi
+  mkdir -p "$SAMPLE_TMP"
 
-  echo "Running HUMAnN2..." | tee -a "${LOG_FILE}"
-
+  # -----------------------------
+  # Run HUMAnN2 (translated-only)
+  # -----------------------------
   set +e
-  humann2 \
-    --input "${INTERLEAVED}" \
-    --output "${SAMPLE_OUTDIR}" \
-    --threads "${THREADS}" \
-    --bypass-prescreen \
-    --bypass-nucleotide-search \
-    --resume \
-    --protein-database "${PROT_DB}" \
-    --verbose \
-    &>> "${LOG_FILE}"
+  ionice -c "$IONICE_CLASS" -n "$IONICE_LEVEL" \
+    nice -n "$NICE_LEVEL" \
+    "$HUMANN_BIN" \
+      --input "$INPUT_FASTQ" \
+      --output "$OUT_DIR" \
+      --threads "$THREADS" \
+      --protein-database "$PROTEIN_DB" \
+      --nucleotide-database "$NUCLEOTIDE_DB" \
+      --bypass-prescreen \
+      --bypass-nucleotide-search \
+      --verbose \
+      --temp-directory "$SAMPLE_TMP"
+
   EXIT_CODE=$?
   set -e
 
-  if [[ "${EXIT_CODE}" -ne 0 ]]; then
-    echo "[FAIL] HUMAnN2 failed for ${sample}" | tee -a "${LOG_FILE}"
-    continue
+  if [[ "$EXIT_CODE" -ne 0 ]]; then
+    echo "ERROR: HUMAnN2 failed for $SAMPLE (exit code $EXIT_CODE)"
+    echo "Temp directory retained for debugging: $SAMPLE_TMP"
+    exit 1
   fi
 
-  touch "${DONE_FLAG}"
-  echo "[DONE] ${sample}"
+  # -----------------------------
+  # Cleanup + checkpoint
+  # -----------------------------
+  rm -rf "$SAMPLE_TMP"
+
+  touch "$DONE_MARKER"
+
+  echo "HUMAnN2 COMPLETE: $SAMPLE"
+  echo
 
 done
 
-echo "======================================"
-echo "HUMAnN2 batch step completed"
-echo "======================================"
+echo "All HUMAnN2 samples completed successfully."
