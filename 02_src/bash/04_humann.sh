@@ -84,7 +84,7 @@ tail -n +2 "${SAMPLE_TABLE}" | while IFS=$'\t' read -r sample r1 r2 cond; do
   --output "${OUTDIR}/${sample}" \
   --threads "${THREADS}" \
   --bypass-prescreen \
-  --bypass-nucleotide-index \
+  --bypass-nucleotide-search \
   --resume \
   --verbose
 
