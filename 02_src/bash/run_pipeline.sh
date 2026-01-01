@@ -60,12 +60,12 @@ run_step () {
 # Pipeline execution
 # ------------------------------------------------------------------------------
 
+run_step "00_stage_fastq"     "${SCRIPTDIR}/00_stage_fastq.sh"
 run_step "01_fastp"           "${SCRIPTDIR}/01_fastp.sh"
 run_step "02_remove_host"     "${SCRIPTDIR}/02_remove_host.sh"
-# run_step "03_remove_rrna"     "${SCRIPTDIR}/03_remove_rrna.sh"
-run_step "04_humann"          "${SCRIPTDIR}/04_humann.sh"
-run_step "05_kegg_pathways"   "${SCRIPTDIR}/05_kegg_pathways.sh"
-run_step "06_multiqc"         "${SCRIPTDIR}/06_multiqc.sh"
+run_step "03_humann"          "${SCRIPTDIR}/03_humann.sh"
+run_step "04_kegg_pathways"   "${SCRIPTDIR}/04_kegg_pathways.sh"
+run_step "05_multiqc"         "${SCRIPTDIR}/05_multiqc.sh"
 
 echo "============================================================"
 echo "=== PIPELINE COMPLETED SUCCESSFULLY ==="
