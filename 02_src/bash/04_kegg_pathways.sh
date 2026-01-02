@@ -14,7 +14,7 @@ set -euo pipefail
 # ------------------------------------------------------------------------------
 
 KEGG_OUTDIR="data/processed/kegg_pathways"
-HUMANN_DIR="data/processed/humann"
+HUMANN_DIR="results/humann"
 METADATA="metadata/sample_table.tsv"
 
 mkdir -p "${KEGG_OUTDIR}"
@@ -24,7 +24,7 @@ echo "Starting KEGG aggregation..."
 tail -n +2 "${METADATA}" | while read -r sample r1 r2 cond; do
   echo "Aggregating KEGG KOs for sample: ${sample}"
 
-  INPUT_GF="${HUMANN_DIR}/${sample}/${sample}_genefamilies.tsv"
+  INPUT_GF="${HUMANN_DIR}/${sample}_genefamilies.tsv"
   OUTPUT_KO="${KEGG_OUTDIR}/${sample}_ko.tsv"
 
   if [[ ! -f "${INPUT_GF}" ]]; then

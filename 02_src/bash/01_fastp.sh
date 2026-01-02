@@ -14,7 +14,7 @@ tail -n +2 metadata/sample_table.tsv | while read sample r1 r2 cond; do
     --detect_adapter_for_pe \
     --qualified_quality_phred 20 \
     --length_required 50 \
-    --thread 8 \
+    --thread "${THREADS:-8}" \
     --html results/qc/fastp/${sample}.html \
     --json results/qc/fastp/${sample}.json
 done
