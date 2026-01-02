@@ -40,16 +40,7 @@ if [[ ! -f "$METADATA" ]]; then
   exit 1
 fi
 
-# Abort if metadata is malformed
-awk 'NR>1 && NF!=4' "$METADATA" && {
-  echo "ERROR: Malformed metadata rows detected (NF != 4)"
-  exit 1
-}
 
-awk 'NR>1 && $4==""' "$METADATA" && {
-  echo "ERROR: Empty condition labels detected"
-  exit 1
-}
 
 # -----------------------------
 # Main loop
@@ -84,18 +75,19 @@ tail -n +2 "$METADATA" | while read -r SAMPLE R1 R2 COND; do
   # Run HUMAnN2 (translated-only)
   # -----------------------------
   set +e
+  TMPDIR="$SAMPLE_TMP" \
   ionice -c "$IONICE_CLASS" -n "$IONICE_LEVEL" \
-    nice -n "$NICE_LEVEL" \
-    "$HUMANN_BIN" \
-      --input "$INPUT_FASTQ" \
-      --output "$OUT_DIR" \
-      --threads "$THREADS" \
-      --protein-database "$PROTEIN_DB" \
-      --nucleotide-database "$NUCLEOTIDE_DB" \
-      --bypass-prescreen \
-      --bypass-nucleotide-search \
-      --verbose \
-      --temp-directory "$SAMPLE_TMP"
+  nice -n "$NICE_LEVEL" \
+  "$HUMANN_BIN" \
+    --input "$INPUT_FASTQ" \
+    --output "$OUT_DIR" \
+    --threads "$THREADS" \
+    --protein-database "$PROTEIN_DB" \
+    --nucleotide-database "$NUCLEOTIDE_DB" \
+    --bypass-prescreen \
+    --bypass-nucleotide-search \
+    --verbose
+
 
   EXIT_CODE=$?
   set -e
