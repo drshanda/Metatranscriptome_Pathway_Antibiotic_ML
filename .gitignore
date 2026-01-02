@@ -1,3 +1,18 @@
+# Raw and intermediate data
+raw_fastq/
+data/interim/
+data/processed/
+mlruns/
+
+# Databases and indices
+refs/**/index*
+refs/**/bowtie2_index*
+refs/**/rRNA_databases.fasta
+
+# Logs (optional)
+logs/*.log
+logs/*.DONE
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
