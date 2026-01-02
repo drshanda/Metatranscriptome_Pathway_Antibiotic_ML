@@ -1,3 +1,6 @@
+
+.DS_Store
+
 # Raw and intermediate data
 raw_fastq/
 data/interim/
