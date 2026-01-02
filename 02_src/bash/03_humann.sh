@@ -119,3 +119,18 @@ tail -n +2 "$METADATA" | while read -r SAMPLE R1 R2 COND; do
 done
 
 echo "All HUMAnN2 samples completed successfully."
+
+
+# ==============================
+# HUMAnN2 completion sentinel
+# ==============================
+
+if [[ -s "${OUTDIR}/${SAMPLE}_genefamilies.tsv" ]] && \
+   [[ -s "${OUTDIR}/${SAMPLE}_pathabundance.tsv" ]] && \
+   [[ -s "${OUTDIR}/${SAMPLE}_pathcoverage.tsv" ]]; then
+    touch "${OUTDIR}/${SAMPLE}.humann2.DONE"
+    echo "[INFO] HUMAnN2 completed successfully for ${SAMPLE}"
+else
+    echo "[ERROR] HUMAnN2 outputs missing for ${SAMPLE}" >&2
+    exit 1
+fi
