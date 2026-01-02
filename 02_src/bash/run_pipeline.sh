@@ -63,17 +63,6 @@ run_step () {
 run_step "00_stage_fastq"     "${SCRIPTDIR}/00_stage_fastq.sh"
 run_step "01_fastp"           "${SCRIPTDIR}/01_fastp.sh"
 run_step "02_remove_host"     "${SCRIPTDIR}/02_remove_host.sh"
-
-
-
-DONE_FILE="${OUTDIR}/${SAMPLE}.humann2.DONE"
-
-if [[ -f "${DONE_FILE}" ]]; then
-    echo "[SKIP] HUMAnN2 already completed for ${SAMPLE}"
-    continue
-fi
-
-
 run_step "03_humann"          "${SCRIPTDIR}/03_humann.sh"
 run_step "04_kegg_pathways"   "${SCRIPTDIR}/04_kegg_pathways.sh"
 run_step "05_multiqc"         "${SCRIPTDIR}/05_multiqc.sh"
