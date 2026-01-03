@@ -43,8 +43,7 @@ This project aims to:
 ## 3. Repository Structure
 
 ```
-01_data/
-└── processed/                
+01_data/              
 
 02_src/
 ├── bash/
