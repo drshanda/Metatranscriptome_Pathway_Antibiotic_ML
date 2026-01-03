@@ -57,6 +57,19 @@ tail -n +2 "$METADATA" | while read -r SAMPLE R1 R2 COND; do
     continue
   fi
 
+  # ------------------------------------------------------------
+  # Create interleaved FASTQ if missing (pilot behavior)
+  # ------------------------------------------------------------
+  if [[ ! -f "$INPUT_FASTQ" ]]; then
+    INPUT_R1="${INPUT_DIR}/${SAMPLE}_1.fastq.gz"
+    INPUT_R2="${INPUT_DIR}/${SAMPLE}_2.fastq.gz"
+
+    if [[ -f "$INPUT_R1" && -f "$INPUT_R2" ]]; then
+      echo "Interleaving paired no-host FASTQs with seqtk for $SAMPLE"
+      seqtk mergepe "$INPUT_R1" "$INPUT_R2" | gzip -c > "$INPUT_FASTQ"
+    fi
+  fi
+
   if [[ ! -f "$INPUT_FASTQ" ]]; then
     echo "ERROR: Input FASTQ not found for $SAMPLE"
     exit 1
