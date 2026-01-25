@@ -24,7 +24,7 @@ echo "Starting KEGG aggregation..."
 tail -n +2 "${METADATA}" | while read -r sample r1 r2 cond; do
   echo "Aggregating KEGG KOs for sample: ${sample}"
 
-  INPUT_GF="${HUMANN_DIR}/${sample}_genefamilies.tsv"
+  INPUT_GF="${HUMANN_DIR}/${sample}_interleaved_genefamilies.tsv"
   OUTPUT_KO="${KEGG_OUTDIR}/${sample}_ko.tsv"
 
   if [[ ! -f "${INPUT_GF}" ]]; then
@@ -32,9 +32,9 @@ tail -n +2 "${METADATA}" | while read -r sample r1 r2 cond; do
     exit 1
   fi
 
-  humann_regroup_table \
+  humann2_regroup_table \
     --input "${INPUT_GF}" \
-    --groups uniref90_ko \
+    --groups uniref90_rxn \
     --output "${OUTPUT_KO}"
 
 done
